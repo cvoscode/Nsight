@@ -14,7 +14,7 @@ import base64
 import numpy as np
 from sklearn import preprocessing
 from utils.styling import style_app
-from utils.read_data import read_data
+from utils.read_data import read_data,px_data
 dirname=os.path.dirname(__file__)
 
 #-------------------Styling---------------------#
@@ -26,12 +26,12 @@ image=base64.b64encode(open(image_path,'rb').read())
 
 #app=Dash(__name__, external_stylesheets=external_stylesheets)
 
-def create_table(df,id,renameable):
+def create_table(df,id,renameable,pagesize=3):
     return html.Div(dash_table.DataTable(
         id=id,
         columns=[{"name": i, "id": i, "deletable": True,'renamable': renameable} for i in df.columns],
         data=df.to_dict("records"),
-        page_size=3,
+        page_size=pagesize,
         editable=True,
         row_deletable=True,
         filter_action="native",
@@ -46,6 +46,7 @@ def cerate_Numeric(id,placeholder):
     return dbc.Input(id=id,type='Number',placeholder=placeholder,debounce=True)
 
 def save_plot(fig,name,save_path):
+    print('save plot')
     if save_path:
         path=os.path.join(save_path,name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -62,7 +63,23 @@ def create_Tab1(df):
     dbc.Row([html.H5('Lower and Upper Bound'),cerate_Numeric('PC-Lower-Bound',placeholder='Lower Bound'),cerate_Numeric('PC-Upper-Bound',placeholder='Upper Bound')]),
     dbc.Row([dcc.Input(id='PC-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Parallel Coordinates Plot',id='PC-save-plot')])
         	])
-Tab2=dcc.Tab(label='Histogram, barplot',id='Histogram-tab',children=[html.H1('Test3')])
+def create_Tab2(df):
+    columns=df.columns.to_list()
+    return dcc.Tab(label='Histogram and barplot',id='Col-tab',children=[
+    dbc.Row(dcc.Loading(id='Col-Loading',children=[dcc.Graph(id='Col-Graph',figure={})])),
+    dbc.Row([html.H4('Plot Settings'),html.Hr()]),
+    dbc.Row([html.H5('Color'),dcc.Dropdown(options=columns,id='Col-x-dropdown',),]),
+    dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='Col-color-dropdown',),dcc.Dropdown(options=columns,id='Col-pattern-dropdown',)]),
+    dbc.Row([dcc.Input(id='Col-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Histogram or Bar Plot',id='Col-save-plot')])
+        	])
+def create_Tab3(df):
+    dff=df.describe(include='all')
+    dff.insert(0,'statistical values',dff.index)
+    print(dff)
+    return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12)),
+                                                             #TODO callbakc for export stats
+                                                             dbc.Row(html.Button('Export Statistics',id='export-stats'))])
+
 Tab3=dcc.Tab(label='Stats Tabelle',id='Stats-tab',children=[html.H1('Test3')])
 Tab4=dcc.Tab(label='Scatter Plot 2D',id='SC-tab',children=[html.H1('Test2')])
 Tab5=dcc.Tab(label='3d Scatter Plot',id='SC3D-tab',children=[html.H1('Test3')])
@@ -104,7 +121,8 @@ def load_data(Path,n_clicks,change_dtypes):
     if n_clicks and ctx.triggered_id=='Load-Data-button':
         if Path:
             try:
-                df=read_data(Path)
+                df=px_data()
+                #df=read_data(Path)
             except:
                 return [{},html.H3(children='The data was not loaded sucessfully! It seems the format you provided is not supported, the data is corrupt, or the path is not valid!',style={'color':f'{colors["Error"]}'})]    
             #check box
@@ -117,15 +135,14 @@ def load_data(Path,n_clicks,change_dtypes):
     
 
 
-# callbacks for Data Transformation
+# callbacks for Data Transformation Layout
 @app.callback(Output('Data-trans','children'),
     Input('store','data'))
 def update_trans_layout(data):
     if ctx.triggered_id==('store'):
         df=pd.DataFrame.from_records(data)                  
         return  [dbc.Row(create_table(df,id='trans_table',renameable=True)),
-                 dbc.Row([  dbc.Col([html.H4('Rename Columns'),dcc.Dropdown(options=df.columns,id='rename-dropdown'),dcc.Input(id='rename-name',type='text',placeholder='New Name of the column',debounce=True),html.Button('Rename',id='rename-button')]),
-                            dbc.Col([html.H4('Transform Columns'),dcc.Dropdown(options=df.columns,id='trans-dropdown'),html.Button('Label Encode Column',id='label-encode-button'),html.Button('Scale Column Min/Max',id='scale-min/max-button'),html.Button('Standardize Column',id='standardize-button'),dcc.Checklist(['Scale all columns Min/Max','Standardize all columns'],[],id='scale-checklist',inline=True,),html.Button('Confirm Transformation',id='confirm-trans-button')])])]
+                 dbc.Row([dbc.Col([html.H4('Transform Columns'),dcc.Dropdown(options=df.columns,id='trans-dropdown'),html.Button('Label Encode Column',id='label-encode-button'),html.Button('Scale Column Min/Max',id='scale-min/max-button'),html.Button('Standardize Column',id='standardize-button'),dcc.Checklist(['Scale all columns Min/Max','Standardize all columns'],[],id='scale-checklist',inline=True,),html.Button('Confirm Transformation',id='confirm-trans-button')])])]
     #update layout based on table
                
 @app.callback(
@@ -151,45 +168,23 @@ def transform_data(data,column,label,standard,scale,checklist,confirm):
         return df.to_dict("records")
     if ctx.triggered_id=='confirm-trans-button':
         if "Scale all columns Min/Max" in checklist: 
-            df=preprocessing.MinMaxScaler().fit_transform(df)
-            return df
-        if "Scale all columns Min/Max" in checklist: 
-            df=preprocessing.MinMaxScaler().fit_transform(df)
-            return df
-        else: return df
-
-
-
-               
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            dff=pd.DataFrame(preprocessing.MinMaxScaler().fit_transform(df),columns=df.columns)
+            return dff.to_dict("records")
+        if "Standardize all columns" in checklist: 
+            dff=pd.DataFrame(preprocessing.MinMaxScaler().fit_transform(df),columns=df.columns)
+            return dff.to_dict("records")
+        else: return df.to_dict("records")
 
 # Muss umgeschriben werden auf Button fertig von Data Transformation
 @app.callback(Output('Data-exp','children'),
     State('trans_table','data'),
-    Input('confirm-trans-button','n_clicks'),prevent_initial_call=True)
+    Input('confirm-trans-button','n_clicks'))
 def update_table(data,confirm):
     if data:
         df=pd.DataFrame.from_records(data)
-        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),Tab2,Tab3,Tab4,Tab5,Tab6,Tab7,Tab8,Tab9])),
+        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),create_Tab2(df),create_Tab3(df),Tab4,Tab5,Tab6,Tab7,Tab8,Tab9])),
     
-
+#--------------------------Graph---------callbacks-------------
 @app.callback(
     Output('PC-Graph','figure'),
     State('trans_table','data'),
@@ -207,6 +202,7 @@ def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,up,low,
     if derived_virtual_selected_rows is None:
         derived_virtual_selected_rows=[]
     dff=df if rows is None else pd.DataFrame(rows)
+    #TODO upper value and lower value are not in use right now
     fig=px.parallel_coordinates(dff,color=color_column)
     if title:
         fig.update_layout(title=title)
@@ -214,6 +210,29 @@ def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,up,low,
         save_plot(fig,name=f'{title}.html',save_path=save_path)
     return fig
 
+@app.callback(
+    Output('Col-Graph','figure'),
+    State('trans_table','data'),
+    Input('data_table','derived_virtual_data'),
+    Input('data_table','derived_virtual_selected_rows'),
+    Input('Col-color-dropdown','value'),
+    Input('Col-x-dropdown','value'),
+    Input('Col-pattern-dropdown','value'),
+    Input('Col-name','value'),
+    Input('Save_Path','value'),
+    Input('Col-save-plot','n_clicks'),prevent_initial_call=True,
+)
+def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,x,pattern,title,save_path,save):
+    df=pd.DataFrame.from_records(data)
+    if derived_virtual_selected_rows is None:
+        derived_virtual_selected_rows=[]
+    dff=df if rows is None else pd.DataFrame(rows)
+    fig=px.histogram(dff,x=x,color=color_column,marginal='box',pattern_shape=pattern)
+    if title:
+        fig.update_layout(title=title)
+    if ctx.triggered_id=='Col-save-plot':
+        save_plot(fig,name=f'{title}.html',save_path=save_path)
+    return fig
 
 
         

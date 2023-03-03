@@ -7,4 +7,7 @@ def read_data(PATH):
     except:
         return Exception
 
-   
+import plotly.express as px
+def px_data():
+    df = px.data.tips()
+    return df
