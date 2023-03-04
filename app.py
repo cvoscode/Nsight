@@ -55,6 +55,21 @@ def save_plot(fig,name,save_path):
     offline.plot(fig,filename=path,auto_open=True,include_plotlyjs='cdn')
 
 def create_Tab1(df):
+    dff=df.describe(include='all')
+    dff.insert(0,'statistical values',dff.index)
+    return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12)),
+                                                             #TODO callbakc for export stats
+                                                             dbc.Row(html.Button('Export Statistics',id='export-stats'))])    
+def create_Tab2(df):
+    columns=df.columns.to_list()
+    return dcc.Tab(label='Histogram and barplot',id='Col-tab',children=[
+    dbc.Row(dcc.Loading(id='Col-Loading',children=[dcc.Graph(id='Col-Graph',figure={})])),
+    dbc.Row([html.H4('Plot Settings'),html.Hr()]),
+    dbc.Row([html.H5('Column'),dcc.Dropdown(options=columns,id='Col-x-dropdown',),]),
+    dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='Col-color-dropdown',),dcc.Dropdown(options=columns,id='Col-pattern-dropdown',)]),
+    dbc.Row([dcc.Input(id='Col-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Histogram or Bar Plot',id='Col-save-plot')])
+        	])
+def create_Tab3(df):
     num_columns=df.select_dtypes(include=np.number).columns.to_list()
     return dcc.Tab(label='Parallel Coordinates',id='PC-tab',children=[
     dbc.Row(dcc.Loading(id='PC-Loading',children=[dcc.Graph(id='PC-Graph',figure={})])),
@@ -63,30 +78,48 @@ def create_Tab1(df):
     dbc.Row([html.H5('Lower and Upper Bound'),cerate_Numeric('PC-Lower-Bound',placeholder='Lower Bound'),cerate_Numeric('PC-Upper-Bound',placeholder='Upper Bound')]),
     dbc.Row([dcc.Input(id='PC-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Parallel Coordinates Plot',id='PC-save-plot')])
         	])
-def create_Tab2(df):
-    columns=df.columns.to_list()
-    return dcc.Tab(label='Histogram and barplot',id='Col-tab',children=[
-    dbc.Row(dcc.Loading(id='Col-Loading',children=[dcc.Graph(id='Col-Graph',figure={})])),
+def create_Tab4(df):
+    num_columns=df.select_dtypes(include=np.number).columns.to_list()
+    columns=df.columns
+    return dcc.Tab(label='Scatterplot 2D',id='SC-tab',children=[
+    dbc.Row(dcc.Loading(id='SC-Loading',children=[dcc.Graph(id='SC-Graph',figure={})])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
-    dbc.Row([html.H5('Color'),dcc.Dropdown(options=columns,id='Col-x-dropdown',),]),
-    dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='Col-color-dropdown',),dcc.Dropdown(options=columns,id='Col-pattern-dropdown',)]),
-    dbc.Row([dcc.Input(id='Col-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Histogram or Bar Plot',id='Col-save-plot')])
+    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='SC-x-dropdown'),dcc.Dropdown(options=num_columns,id='SC-y-dropdown')]),
+    dbc.Row([html.H5('Color and Size'),dcc.Dropdown(options=columns,id='SC-color-dropdown',),dcc.Dropdown(options=num_columns,id='SC-size-dropdown',)]),
+    dbc.Row([dcc.Input(id='SC-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Scatter Plot',id='SC-save-plot')])
         	])
-def create_Tab3(df):
-    dff=df.describe(include='all')
-    dff.insert(0,'statistical values',dff.index)
-    print(dff)
-    return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12)),
-                                                             #TODO callbakc for export stats
-                                                             dbc.Row(html.Button('Export Statistics',id='export-stats'))])
+def create_Tab5(df):
+    num_columns=df.select_dtypes(include=np.number).columns.to_list()
+    columns=df.columns
+    return dcc.Tab(label='Scatterplot 3D',id='SC3D-tab',children=[
+    dbc.Row(dcc.Loading(id='SC3D-Loading',children=[dcc.Graph(id='SC3D-Graph',figure={})])),
+    dbc.Row([html.H4('Plot Settings'),html.Hr()]),
+    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='SC3D-x-dropdown'),dcc.Dropdown(options=num_columns,id='SC3D-y-dropdown'),dcc.Dropdown(options=num_columns,id='SC3D-z-dropdown')]),
+    dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='SC3D-color-dropdown',),dcc.Dropdown(options=columns,id='SC3D-size-dropdown',)]),
+    dbc.Row([dcc.Input(id='SC3D-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save 3D Scatter Plot',id='SC3D-save-plot')])
+    ])
 
-Tab3=dcc.Tab(label='Stats Tabelle',id='Stats-tab',children=[html.H1('Test3')])
-Tab4=dcc.Tab(label='Scatter Plot 2D',id='SC-tab',children=[html.H1('Test2')])
-Tab5=dcc.Tab(label='3d Scatter Plot',id='SC3D-tab',children=[html.H1('Test3')])
-Tab6=dcc.Tab(label='Ridgid Plot',id='Rigid-tab',children=[html.H1('Test3')])
+
+def create_Tab6(df):
+    num_columns=df.select_dtypes(include=np.number).columns.to_list()
+    columns=df.columns
+    return dcc.Tab(label='Ridge',id='Ridge-tab',children=[
+    dbc.Row(dcc.Loading(id='Ridge-Loading',children=[dcc.Graph(id='Ridge-Graph',figure={})])),
+    dbc.Row([html.H4('Plot Settings'),html.Hr()]),
+    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='Ridge-x-dropdown'),dcc.Dropdown(options=num_columns,id='Ridge-y-dropdown')]),
+    dbc.Row([html.H5('Color'),dcc.Dropdown(options=columns,id='Ridge-color-dropdown')]),
+    dbc.Row([dcc.Input(id='Ridge-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save 3D Scatter Plot',id='Ridge-save-plot')])
+    ])
+
 Tab7=dcc.Tab(label='Pareto Analysis ABC Analyse',id='Pareto-tab',children=[html.H1('Test3')])
-Tab8=dcc.Tab(label='Correlation Heatmap',id='Corr-tab',children=[html.H1('Test3')])
-Tab9=dcc.Tab(label='Dot',id='Dot-tab',children=[html.H1('Test3')])
+
+def create_Tab8(df):
+    return dcc.Tab(label='Correlations',id='Corr-tab',children=[
+    dbc.Row(dcc.Loading(id='Corr-Loading',children=[dcc.Graph(id='Corr-Graph',figure={})])),
+    dbc.Row([html.H4('Plot Settings'),html.Hr()]),
+    dbc.Row([html.H5('Correlation Type'),dcc.Dropdown(options=['pearson','spearman','kendall'],id='Corr-type-dropdown'),]),
+    dbc.Row([dcc.Input(id='Corr-name',type='text',placeholder='Plot Title and Save Name',debounce=True),html.Button('Save Correlations Plot',id='Corr-save-plot')])
+    ])
 
 
 
@@ -137,7 +170,7 @@ def load_data(Path,n_clicks,change_dtypes):
 
 # callbacks for Data Transformation Layout
 @app.callback(Output('Data-trans','children'),
-    Input('store','data'))
+    Input('store','data'),prevent_initial_call=True)
 def update_trans_layout(data):
     if ctx.triggered_id==('store'):
         df=pd.DataFrame.from_records(data)                  
@@ -182,7 +215,7 @@ def transform_data(data,column,label,standard,scale,checklist,confirm):
 def update_table(data,confirm):
     if data:
         df=pd.DataFrame.from_records(data)
-        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),create_Tab2(df),create_Tab3(df),Tab4,Tab5,Tab6,Tab7,Tab8,Tab9])),
+        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),create_Tab2(df),create_Tab3(df),create_Tab4(df),create_Tab5(df),create_Tab6(df),Tab7,create_Tab8(df)])),
     
 #--------------------------Graph---------callbacks-------------
 @app.callback(
@@ -222,24 +255,126 @@ def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,up,low,
     Input('Save_Path','value'),
     Input('Col-save-plot','n_clicks'),prevent_initial_call=True,
 )
-def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,x,pattern,title,save_path,save):
+def update_Col_graph(data,rows,derived_virtual_selected_rows,color_column,x,pattern,title,save_path,save):
+    if x:
+        df=pd.DataFrame.from_records(data)
+        if derived_virtual_selected_rows is None:
+            derived_virtual_selected_rows=[]
+        dff=df if rows is None else pd.DataFrame(rows)
+        fig=px.histogram(dff,x=x,color=color_column,marginal='box',pattern_shape=pattern)
+        if title:
+            fig.update_layout(title=title)
+        if ctx.triggered_id=='Col-save-plot':
+            save_plot(fig,name=f'{title}.html',save_path=save_path)
+        return fig
+    else: return {}
+
+@app.callback(
+    Output('SC-Graph','figure'),
+    State('trans_table','data'),
+    Input('data_table','derived_virtual_data'),
+    Input('data_table','derived_virtual_selected_rows'),
+    Input('SC-color-dropdown','value'),
+    Input('SC-x-dropdown','value'),
+    Input('SC-y-dropdown','value'),
+    Input('SC-size-dropdown','value'),
+    Input('SC-name','value'),
+    Input('Save_Path','value'),
+    Input('SC-save-plot','n_clicks'),prevent_initial_call=True,
+)
+def update_SC_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,size,title,save_path,save):
+    if x or y:
+        df=pd.DataFrame.from_records(data)
+        if derived_virtual_selected_rows is None:
+            derived_virtual_selected_rows=[]
+        dff=df if rows is None else pd.DataFrame(rows)
+        fig=px.scatter(dff,x=x,y=y,color=color_column,trendline='ols',size=size,marginal_x='box',marginal_y='box')
+        if title:
+            fig.update_layout(title=title)
+        if ctx.triggered_id=='SC-save-plot':
+            save_plot(fig,name=f'{title}.html',save_path=save_path)
+        return fig
+    else: {}
+
+@app.callback(
+    Output('SC3D-Graph','figure'),
+    State('trans_table','data'),
+    Input('data_table','derived_virtual_data'),
+    Input('data_table','derived_virtual_selected_rows'),
+    Input('SC3D-color-dropdown','value'),
+    Input('SC3D-x-dropdown','value'),
+    Input('SC3D-y-dropdown','value'),
+    Input('SC3D-z-dropdown','value'),
+    Input('SC3D-size-dropdown','value'),
+    Input('SC3D-name','value'),
+    Input('Save_Path','value'),
+    Input('SC3D-save-plot','n_clicks'),prevent_initial_call=True,
+)
+def update_SC3D_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,z,size,title,save_path,save):
+    if x or y or z:
+        df=pd.DataFrame.from_records(data)
+        if derived_virtual_selected_rows is None:
+            derived_virtual_selected_rows=[]
+        dff=df if rows is None else pd.DataFrame(rows)
+        fig=px.scatter_3d(dff,x=x,y=y,z=z,color=color_column,size=size)
+        if title:
+            fig.update_layout(title=title)
+        if ctx.triggered_id=='SC3D-save-plot':
+            save_plot(fig,name=f'{title}.html',save_path=save_path)
+        return fig
+    else: return {}
+        
+@app.callback(
+    Output('Ridge-Graph','figure'),
+    State('trans_table','data'),
+    Input('data_table','derived_virtual_data'),
+    Input('data_table','derived_virtual_selected_rows'),
+    Input('Ridge-color-dropdown','value'),
+    Input('Ridge-x-dropdown','value'),
+    Input('Ridge-y-dropdown','value'),
+    Input('Ridge-name','value'),
+    Input('Save_Path','value'),
+    Input('Ridge-save-plot','n_clicks'),prevent_initial_call=True,
+)
+def update_Ridge_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,title,save_path,save):
+    if y or x:
+        df=pd.DataFrame.from_records(data)
+        if derived_virtual_selected_rows is None:
+            derived_virtual_selected_rows=[]
+        dff=df if rows is None else pd.DataFrame(rows)
+        #maybe use https://github.com/tpvasconcelos/ridgeplot
+        fig=px.violin(dff,x=x,y=y,orientation='h',color=color_column).update_traces(side='positive',width=8)
+        if title:
+            fig.update_layout(title=title)
+        if ctx.triggered_id=='Ridge-save-plot':
+            save_plot(fig,name=f'{title}.html',save_path=save_path)
+        return fig   
+    else: return {}
+
+@app.callback(
+    Output('Corr-Graph','figure'),
+    State('trans_table','data'),
+    Input('data_table','derived_virtual_data'),
+    Input('data_table','derived_virtual_selected_rows'),
+    Input('Corr-type-dropdown','value'),
+    Input('Corr-name','value'),
+    Input('Save_Path','value'),
+    Input('Corr-save-plot','n_clicks'),prevent_initial_call=True,
+)
+def update_Corr_graph(data,rows,derived_virtual_selected_rows,corr_type,title,save_path,save):
     df=pd.DataFrame.from_records(data)
     if derived_virtual_selected_rows is None:
         derived_virtual_selected_rows=[]
     dff=df if rows is None else pd.DataFrame(rows)
-    fig=px.histogram(dff,x=x,color=color_column,marginal='box',pattern_shape=pattern)
-    if title:
-        fig.update_layout(title=title)
-    if ctx.triggered_id=='Col-save-plot':
-        save_plot(fig,name=f'{title}.html',save_path=save_path)
-    return fig
-
-
-        
-    
-
-            
-         
+    if corr_type:
+        cor=dff.corr(corr_type)
+        fig=px.imshow(cor,text_auto=True)
+        if title:
+            fig.update_layout(title=title)
+        if ctx.triggered_id=='Corr-save-plot':
+            save_plot(fig,name=f'{title}.html',save_path=save_path)
+        return fig            
+    else: return {}
 
 
 
