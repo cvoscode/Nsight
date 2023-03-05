@@ -57,6 +57,7 @@ def create_Tab1(df):
     dff=df.describe(include='all')
     dff.insert(0,'statistical values',dff.index)
     return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12)),
+                                                             dbc.Row(dcc.Input(id='stats-name',type='text',placeholder='Name of the export',debounce=True)),
                                                              dbc.Row(html.Button('Export Statistics as csv',id='export-stats')),
                                                              dbc.Row(html.Div(id='stat-export'))])    
 def create_Tab2(df):
@@ -105,12 +106,12 @@ def create_Tab6(df):
     return dcc.Tab(label='Ridge',id='Ridge-tab',children=[
     dbc.Row(dcc.Loading(id='Ridge-Loading',children=[dcc.Graph(id='Ridge-Graph',figure={})])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
-    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='Ridge-x-dropdown',placeholder='Select the x-Column'),dcc.Dropdown(options=num_columns,id='Ridge-y-dropdown',placeholder='Select the y-Column')]),
+    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=columns,id='Ridge-x-dropdown',placeholder='Select the x-Column'),dcc.Dropdown(options=columns,id='Ridge-y-dropdown',placeholder='Select the y-Column')]),
     dbc.Row([html.H5('Color'),dcc.Dropdown(options=columns,id='Ridge-color-dropdown',placeholder='Select Color Column')]),
     dbc.Row([dcc.Input(id='Ridge-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True),html.Button('Save 3D Scatter Plot',id='Ridge-save-plot')])
     ])
 
-Tab7=dcc.Tab(label='Pareto Analysis ABC Analyse',id='Pareto-tab',children=[html.H1('Test3')])
+#Tab7=dcc.Tab(label='Pareto Analysis ABC Analyse',id='Pareto-tab',children=[html.H1('Test3')])
 
 def create_Tab8(df):
     return dcc.Tab(label='Correlations',id='Corr-tab',children=[
@@ -134,7 +135,9 @@ app.layout = dbc.Container([
                                     #input and casting #TODO Scaling, column, renaming, label encoding 
                                     dcc.Tab(label='Load Data and gernal setting',children=[
                                             dbc.Row([dbc.Col([dbc.Row(dcc.Input(id='Path',type='text',placeholder='Path to data (supportes *.xlsx,*.parquet,*.csv)',value=r'C:\Python\Christophs_Rapid_Viz\test_data.csv',debounce=True,style=min_style)),dbc.Row(dcc.Input(id='Save_Path',type='text',placeholder='Path to where the plots shall be saved',debounce=True,style=min_style)),dbc.Row(html.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style)),dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',inline=True)),dbc.Row(html.Div(id='loading_info'))]),
-                                            dbc.Col(dbc.Row(children=[dcc.Markdown('Welcome to Christoph´s Rapid Viz, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del')])),]),]),
+                                                    dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Christoph´s Rapid Viz, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
+                                                            dbc.Row(html.Img(src=app.get_asset_url('pexels-anna-nekrashevich-6802049.jpg'),style={'height':'80%','width':'80%','display':'block','margin-left':'auto','margin-right':'auto',})),]
+                                                            ),]),]),
                                     # richtige App
                                     dcc.Tab(label='Data Transformation',id='Data-trans',children=[]),
                                     dcc.Tab(label='Data_Exploration',id='Data-exp',children=[])
@@ -173,11 +176,11 @@ def load_data(Path,n_clicks,change_dtypes):
     Input('store','data'),prevent_initial_call=True)
 def update_trans_layout(data):
     if ctx.triggered_id==('store'):
-        df=pd.DataFrame.from_records(data)                  
-        return  [dbc.Row(create_table(df,id='trans_table',renameable=True)),
+        if data:
+            df=pd.DataFrame.from_records(data)                  
+            return  [dbc.Row(create_table(df,id='trans_table',renameable=True)),
                  dbc.Row([dbc.Col([html.H4('Transform Columns'),dcc.Dropdown(options=df.columns,id='trans-dropdown'),html.Button('Label Encode Column',id='label-encode-button'),html.Button('Scale Column Min/Max',id='scale-min/max-button'),html.Button('Standardize Column',id='standardize-button'),]),
                           dbc.Col([dcc.Checklist(['Scale all columns Min/Max','Standardize all columns'],[],id='scale-checklist',labelStyle={'display': 'inline-block'}),html.Button('Confirm Transformation',id='confirm-trans-button')])])]
-    #update layout based on table
                
 @app.callback(
         Output('trans_table','data'),
@@ -216,7 +219,7 @@ def transform_data(data,column,label,standard,scale,checklist,confirm):
 def update_table(data,confirm):
     if data:
         df=pd.DataFrame.from_records(data)
-        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),create_Tab2(df),create_Tab3(df),create_Tab4(df),create_Tab5(df),create_Tab6(df),Tab7,create_Tab8(df)])),
+        return dbc.Row(create_table(df,id='data_table',renameable=False)),dbc.Row(dcc.Tabs(id='graphs',children=[create_Tab1(df),create_Tab2(df),create_Tab3(df),create_Tab4(df),create_Tab5(df),create_Tab6(df),create_Tab8(df)])),
     
 #--------------------------Graph---------callbacks-------------
 @app.callback(Output('stats-table','data'),
@@ -235,16 +238,17 @@ def update_stats(data,rows,derived_virtual_selected_rows):
 @app.callback(
         Output('stat-export','children'),
         Input('export-stats','n_clicks'),
+        State('stats-name','value'),
         State('stats-table','data'),
         State('Save_Path','value'),
 )
-def export_Stats(n_clicks,data,save_path):
+def export_Stats(n_clicks,name,data,save_path):
     if ctx.triggered_id=='export-stats':
         df=pd.DataFrame.from_records(data)
         if save_path:
-            path=os.path.join(save_path,'stats.csv')
+            path=os.path.join(save_path,f'{name}.csv')
         else:
-            path='stats.csv'
+            path=f'{name}.csv'
         df.to_csv(path)
         return html.H5(f"Statistics are saved sucessfully under '{path}'",style={'color':f'{colors["Sucess"]}'})
 

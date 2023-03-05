@@ -9,5 +9,5 @@ def read_data(PATH):
 
 import plotly.express as px
 def px_data():
-    df = px.data.tips()
+    df = px.data.stocks()
     return df
