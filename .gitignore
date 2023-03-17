@@ -1,2 +1,4 @@
 env
 /env
+__py*
+/__py*
