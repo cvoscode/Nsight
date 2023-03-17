@@ -4,13 +4,14 @@ if not sys.warnoptions:
     warnings.simplefilter('ignore')
 import os
 from dash import Input,State,Output,dcc,html,ctx,dash_table,Dash
-from dash_bootstrap_templates import load_figure_template
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc 
+from dash_bootstrap_templates import load_figure_template
 import plotly.express as px
 import plotly.offline as offline
 import plotly.graph_objects as go
 import plotly.colors as plcolor
+
 import plotly.io as pio
 from ridgeplot import ridgeplot
 import plotly.figure_factory as ff
@@ -27,11 +28,11 @@ from utils.read_data import read_data
 dirname=os.path.dirname(__file__)
 
 #-------------------Styling---------------------#
-external_style,colors,min_style,discrete_color_scale,color_scale=style_app()
-figure_template=load_figure_template("sketchy")
+external_style,colors,min_style,discrete_color_scale,color_scale,figure_temp=style_app()
 image_path=os.path.join(dirname,os.path.normpath('utils/images/logo.png'))
 image=base64.b64encode(open(image_path,'rb').read())
-pio.templates.default = "sketchy+watermark"
+figure_template=load_figure_template(figure_temp)
+pio.templates.default = f"{figure_temp}+watermark"
 
 #app=Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -132,7 +133,7 @@ def create_Export():
     return dcc.Tab(label='Export Data',id='Export-tab',children=[dbc.Row([dcc.Input(id='Export-name',type='text',placeholder='Name of the Data Export (including the extension - possible extensions are: .csv, .xlsx, .parquet)',debounce=True,style=min_style),html.Button('Export Data',id='Export Data',style=min_style),html.Div(id='Export-div')],style=min_style)])
 #----------------------------------------------------------------------------
 server = flask.Flask(__name__)
-app=Dash(__name__,external_stylesheets=[dbc.themes.SKETCHY],suppress_callback_exceptions=True,server=server)
+app=Dash(__name__,external_stylesheets=[external_style],suppress_callback_exceptions=True,server=server)
 
 
 app.layout = dbc.Container([
@@ -414,7 +415,7 @@ def update_SC_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,siz
                 color_values=plcolor.sample_colorscale(discrete_color_scale,[n/(n_colors -1) for n in range(n_colors)])
                 fig=px.scatter(dff,x=x,y=y,color=color_column,size=size,template=figure_template,color_discrete_sequence=color_values,trendline='ols')
             else:
-                a_,b_,c_,d_,color_scale=style_app()
+                a_,b_,c_,d_,color_scale,template=style_app()
                 fig=px.scatter(dff,x=x,y=y,color=color_column,trendline='ols',size=size,marginal_x='box',marginal_y='box',template=figure_template,color_continuous_scale=color_scale)
         else:
             fig=px.scatter(dff,x=x,y=y,trendline='ols',size=size,marginal_x='box',marginal_y='box',template=figure_template)
@@ -451,7 +452,7 @@ def update_SC3D_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,z
                 color_values=plcolor.sample_colorscale(discrete_color_scale,[n/(n_colors -1) for n in range(n_colors)])
                 fig=px.scatter_3d(dff,x=x,y=y,z=z,color=color_column,template=figure_template,color_discrete_sequence=color_values)
             else:
-                a_,b_,c_,d_,color_scale=style_app()
+                a_,b_,c_,d_,color_scale,template=style_app()
                 fig=px.scatter_3d(dff,x=x,y=y,z=z,color=color_column,size=size,template=figure_template,color_continuous_scale=color_scale)
         else:
             fig=px.scatter_3d(dff,x=x,y=y,z=z,size=size,template=figure_template)

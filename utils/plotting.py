@@ -16,7 +16,7 @@ from ridgeplot._utils import get_xy_extrema, normalise_min_max
 from .styling import style_app
 from ridgeplot._kde import get_densities
 
-external_style,colors,min_style,discrete_color_scale,color_scale=style_app()
+external_style,colors,min_style,discrete_color_scale,color_scale,figure_template=style_app()
 
 class RidgePlotFigureFactory_Custom():
     """Refer to :func:`~ridgeplot.ridgeplot()`."""
