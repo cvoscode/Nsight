@@ -1,8 +1,7 @@
-@echo off
 setlocal
 
 REM Set the name of the virtual environment.
-set VENV_NAME=rvizenv
+set VENV_NAME=env
 
 REM Check if a Python executable path was passed as an argument.
 if "%1"=="" (
