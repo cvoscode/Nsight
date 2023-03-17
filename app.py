@@ -22,6 +22,7 @@ import numpy as np
 from sklearn import preprocessing
 import flask
 from utils.styling import style_app
+from utils.plotting import RidgePlotFigureFactory_Custom
 from utils.read_data import read_data
 dirname=os.path.dirname(__file__)
 
@@ -93,7 +94,7 @@ def create_Tab4(df):
     dbc.Row(dcc.Loading(id='SC-Loading',children=[dcc.Graph(id='SC-Graph',figure={})])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='SC-x-dropdown',placeholder='Select the x-Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC-y-dropdown',placeholder='Select the y-Column',style=min_style)],style=min_style),
-    dbc.Row([html.H5('Color and Size'),dcc.Dropdown(options=columns,id='SC-color-dropdown',placeholder='Select Color Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC-size-dropdown',placeholder='Select Size Column',style=min_style)],style=min_style),
+    dbc.Row([html.H5('Color and Size'),dcc.Dropdown(options=columns,id='SC-color-dropdown',placeholder='Select Color Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC-size-dropdown',placeholder='Select Size Column (will not work if column values are negativ)',style=min_style)],style=min_style),
     dbc.Row([dcc.Input(id='SC-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Scatter Plot',id='SC-save-plot',style=min_style)],style=min_style)
         	])
 def create_Tab5(df):
@@ -113,8 +114,7 @@ def create_Tab6(df):
     return dcc.Tab(label='Ridge',id='Ridge-tab',children=[
     dbc.Row(dcc.Loading(id='Ridge-Loading',children=[dcc.Graph(id='Ridge-Graph',figure={})])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
-    dbc.Row([html.H5('Columns'),dcc.Dropdown(options=columns,id='Ridge-x-dropdown',placeholder='Select the x-Column',style=min_style),dcc.Dropdown(options=columns,id='Ridge-y-dropdown',placeholder='Select the y-Column',style=min_style)],style=min_style),
-    dbc.Row([html.H5('Color'),dcc.Dropdown(options=columns,id='Ridge-color-dropdown',placeholder='Select Color Column',style=min_style)],style=min_style),
+    dbc.Row([dbc.Input(id='Ridge-space',type='number',placeholder='Space between the Columns (in times the highest distribution)',value=2,style=min_style)],style=min_style),
     dbc.Row([dcc.Input(id='Ridge-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save 3D Scatter Plot',id='Ridge-save-plot',style=min_style)],style=min_style)
     ])
 
@@ -129,7 +129,7 @@ def create_Tab8(df):
     dbc.Row([dcc.Input(id='Corr-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Correlations Plot',id='Corr-save-plot',style=min_style)],style=min_style)
     ])
 def create_Export():
-    return dcc.Tab(label='Export Data to csv',id='Export-tab',children=[dbc.Row([dcc.Input(id='Export-name',type='text',placeholder='Name of the Data Export',debounce=True,style=min_style),html.Button('Export Data',id='Export Data',style=min_style),html.Div(id='Export-div')],style=min_style)])
+    return dcc.Tab(label='Export Data',id='Export-tab',children=[dbc.Row([dcc.Input(id='Export-name',type='text',placeholder='Name of the Data Export (including the extension - possible extensions are: .csv, .xlsx, .parquet)',debounce=True,style=min_style),html.Button('Export Data',id='Export Data',style=min_style),html.Div(id='Export-div')],style=min_style)])
 #----------------------------------------------------------------------------
 server = flask.Flask(__name__)
 app=Dash(__name__,external_stylesheets=[dbc.themes.SKETCHY],suppress_callback_exceptions=True,server=server)
@@ -138,7 +138,7 @@ app=Dash(__name__,external_stylesheets=[dbc.themes.SKETCHY],suppress_callback_ex
 app.layout = dbc.Container([
                     #header
                     dbc.Row([
-                            dbc.Col(html.H1(id='Header',children='Christoph`s Rapid Viz',className='Header')),html.Img(src=app.get_asset_url('logo.png'),style={'height':'60px','width':'105px'}),html.Hr()
+                            dbc.Col(html.H1(id='Header',children='Christoph`s Nsight',className='Header')),html.Img(src=app.get_asset_url('logo.png'),style={'height':'60px','width':'105px'}),html.Hr()
                             ]),
                     #Table and GlobalSettings
                     dbc.Row([
@@ -146,7 +146,7 @@ app.layout = dbc.Container([
                                     #TODO displaying data types
                                     dcc.Tab(label='Load Data and gernal setting',children=[
                                             dbc.Row([dbc.Col([dbc.Row(dcc.Input(id='Path',type='text',placeholder='Path to data (supportes *.xlsx,*.parquet,*.csv)',debounce=True,style=min_style)),dbc.Row(dcc.Input(id='Save_Path',type='text',placeholder='Path to where the plots shall be saved',debounce=True,style=min_style)),dbc.Row(html.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style)),dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',style=min_style)),dbc.Row(html.Div(id='loading_info',style=min_style))]),
-                                                    dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Christoph´s Rapid Viz, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
+                                                    dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Christoph´s Nsight, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
                                                             dbc.Row(html.Img(src=app.get_asset_url('pexels-anna-nekrashevich-6802049.jpg'),style={'height':'80%','width':'80%','display':'block','margin-left':'auto','margin-right':'auto',})),]
                                                             ),]),]),
                                     # richtige App
@@ -195,7 +195,7 @@ def update_trans_layout(data):
                  dbc.Row([html.H4('Transform Columns'),html.Hr(),
                         dbc.Col([ dbc.Row([dcc.Dropdown(options=df.columns,id='trans-dropdown',placeholder='Select Column to transform',style=min_style)],style=min_style),dbc.Row([dbc.Col(html.Button('Label Encode Column',id='label-encode-button',style=min_style)),dbc.Col(html.Button('Scale Column Min/Max',id='scale-min/max-button',style=min_style)),dbc.Col(html.Button('Standardize Column',id='standardize-button',style=min_style))]),dbc.Row([dcc.Dropdown(options=['object','int64','float64','datetime64[ns]','bool'],id='dtypes-dropdown',placeholder='Select Column to transform',style=min_style),html.Button('Change Data Type of the selected column',id='change-dtype-button',style=min_style),html.Div(id='dtype-div')],style=min_style)]),
                         dbc.Col([ dbc.Row([dbc.Input(id='varianz-value',type='Number',min=0.000001,max=0.9,step=0.000001,placeholder='Input a variance treshold for the variance filter',debounce=True,style=min_style),html.Button('Filter columns with a low variance (only on numeric columns)',id='filter-varianz-button')],style=min_style),
-                                    dbc.Row([html.Button('Scale all numerical columns Min/Max',id='all-minmax-button',style=min_style),html.Button('Standardize all numerical columns Min/Max',id='all-standard-button',style=min_style),html.Button('Label Encode all categorical columns',id='all-label-button',style=min_style),html.Button('Drop Rows with missing values',id='dropna-button',style=min_style)],style={'margin':'8px 2px 8px'})]),
+                                    dbc.Row([html.Button('Scale all numerical columns Min/Max',id='all-minmax-button',style=min_style),html.Button('Standardize all numerical columns',id='all-standard-button',style=min_style),html.Button('Label Encode all categorical columns',id='all-label-button',style=min_style),html.Button('Drop Rows with missing values',id='dropna-button',style=min_style)],style={'margin':'8px 2px 8px'})]),
                         dbc.Row(html.Button('Confirm Transformation',id='confirm-trans-button',style=min_style),style=min_style)])]
                
 @app.callback(
@@ -237,33 +237,40 @@ def transform_data(data,column,label,standard,scale,all_minmax,all_standard,all_
         return df.to_dict("records"),html.H6(children=f'The Data was transformed sucessfully! You can now proceed to the Data Exploration Tab',style={'color':f'{colors["Sucess"]}'})
     if ctx.triggered_id=='all-minmax-button': 
         df[num_columns]=preprocessing.MinMaxScaler().fit_transform(df[num_columns])
-        return df.to_dict("records"),html.H6(children=f'The {num_columns} column(s) was/were scaled Min/Max sucessfully!',style={'color':f'{colors["Sucess"]}'})
+        num_columns=', '.join(num_columns)
+        return df.to_dict("records"),html.H6(children=f'The column(s) "{num_columns}"  was/were scaled sucessfully to Min/Max!',style={'color':f'{colors["Sucess"]}'})
     if ctx.triggered_id=='all-standard-button': 
         df[num_columns]=preprocessing.StandardScaler().fit_transform(df[num_columns])
-        return df.to_dict("records"),html.H6(children=f'The {num_columns} column(s) was/were standardized sucessfully!',style={'color':f'{colors["Sucess"]}'})
+        num_columns=', '.join(num_columns)
+        return df.to_dict("records"),html.H6(children=f'The column(s) "{num_columns}" was/were standardized sucessfully!',style={'color':f'{colors["Sucess"]}'})
     if ctx.triggered_id=='all-label-button':
         cat_cols=df.select_dtypes(exclude=np.number).columns.to_list()
         for col in cat_cols:
             df[col]=preprocessing.LabelEncoder().fit_transform(df[col])
-        return df.to_dict("records"),html.H6(children=f'The {cat_cols} column(s) was/were Label Encoded sucessfully!',style={'color':f'{colors["Sucess"]}'})
+        cat_cols=', '.join(cat_cols)
+        return df.to_dict("records"),html.H6(children=f'The column(s) "{cat_cols}" was/were Label Encoded sucessfully!',style={'color':f'{colors["Sucess"]}'})
     if ctx.triggered_id=='dropna-button':
-        df=df.dropna()
-        return df.to_dict("records"),html.H6(children=f'The rows with missing values were dropped!',style={'color':f'{colors["Sucess"]}'})
+        dff=df.dropna()
+        dropped=len(df)-len(dff)
+        return dff.to_dict("records"),html.H6(children=f'{dropped} rows with missing values were dropped!',style={'color':f'{colors["Sucess"]}'})
     if column:
         if ctx.triggered_id=='change-dtype-button':
             try:
                 df[column]=df[column].astype(dtype)
-                return df.to_dict("records"),html.H6(children=f'Changing the data type to {dtype} was scessfully!',style={'color':f'{colors["Sucess"]}'})
-            except: return df.to_dict("records"), html.H6(children=f'Changing the data type to {dtype} was NOT scessfully! It seems the conversation to {dtype} for the column {column} is not possible',style={'color':f'{colors["Error"]}'})
-        if ctx.triggered_id=='label-encode-button':
-            df[column]=preprocessing.LabelEncoder().fit_transform(df[column])
-            return df.to_dict("records"),html.H6(children=f'The Column {column} was Label Encoded sucessfully!',style={'color':f'{colors["Sucess"]}'})
-        if ctx.triggered_id=='standardize-button':
-            df[column]=preprocessing.StandardScaler().fit_transform(df[column].values.reshape(-1, 1))
-            return df.to_dict("records"),html.H6(children=f'The Column {column} was Standardized sucessfully!',style={'color':f'{colors["Sucess"]}'})
-        if ctx.triggered_id=='scale-min/max-button':
-            df[column]=preprocessing.MinMaxScaler().fit_transform(df[column].values.reshape(-1, 1))
-            return df.to_dict("records"),html.H6(children=f'The Column {column} was Scaled sucessfully!',style={'color':f'{colors["Sucess"]}'})
+                return df.to_dict("records"),html.H6(children=f'Changing the data type of "{column}" to "{dtype}" was scessfully!',style={'color':f'{colors["Sucess"]}'})
+            except: return df.to_dict("records"), html.H6(children=f'Changing the data type to "{dtype}" was NOT scessfully! It seems the conversation to "{dtype}" for the column "{column}" is not possible',style={'color':f'{colors["Error"]}'})
+        try:
+            if ctx.triggered_id=='label-encode-button':
+                df[column]=preprocessing.LabelEncoder().fit_transform(df[column])
+                return df.to_dict("records"),html.H6(children=f'The Column "{column}" was Label Encoded sucessfully!',style={'color':f'{colors["Sucess"]}'})
+            if ctx.triggered_id=='standardize-button':
+                df[column]=preprocessing.StandardScaler().fit_transform(df[column].values.reshape(-1, 1))
+                return df.to_dict("records"),html.H6(children=f'The Column "{column}" was Standardized sucessfully!',style={'color':f'{colors["Sucess"]}'})
+            if ctx.triggered_id=='scale-min/max-button':
+                df[column]=preprocessing.MinMaxScaler().fit_transform(df[column].values.reshape(-1, 1))
+                return df.to_dict("records"),html.H6(children=f'The Column "{column}" was Scaled sucessfully!',style={'color':f'{colors["Sucess"]}'})
+        except:
+            return df.to_dict("records"),html.H6(children=f'Something went wrong!!! Maybe you tried to scale/standardize a non numeric column.',style={'color':f'{colors["Error"]}'})
     else: raise PreventUpdate
     
 
@@ -399,11 +406,13 @@ def update_SC_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,siz
         if derived_virtual_selected_rows is None:
             derived_virtual_selected_rows=[]
         dff=df if rows is None else pd.DataFrame(rows)
+        if size and dff[size].min()<0:
+            size=None
         if color_column:
             if color_column not in df.select_dtypes(include=np.number).columns:
                 n_colors=len(dff[color_column].unique())
                 color_values=plcolor.sample_colorscale(discrete_color_scale,[n/(n_colors -1) for n in range(n_colors)])
-                fig=px.scatter(dff,x=x,y=y,color=color_column,size=size,template=figure_template,color_discrete_sequence=color_values)
+                fig=px.scatter(dff,x=x,y=y,color=color_column,size=size,template=figure_template,color_discrete_sequence=color_values,trendline='ols')
             else:
                 a_,b_,c_,d_,color_scale=style_app()
                 fig=px.scatter(dff,x=x,y=y,color=color_column,trendline='ols',size=size,marginal_x='box',marginal_y='box',template=figure_template,color_continuous_scale=color_scale)
@@ -458,37 +467,28 @@ def update_SC3D_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,z
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
-    Input('Ridge-color-dropdown','value'),
-    Input('Ridge-x-dropdown','value'),
-    Input('Ridge-y-dropdown','value'),
+    Input('Ridge-space','value'),
     Input('Ridge-name','value'),
     Input('Save_Path','value'),
     Input('Ridge-save-plot','n_clicks'),prevent_initial_call=True,
 )
-def update_Ridge_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,title,save_path,save):
-    if y or x:
-        df=pd.DataFrame.from_records(data)
-        if derived_virtual_selected_rows is None:
-            derived_virtual_selected_rows=[]
-        dff=df if rows is None else pd.DataFrame(rows)
-        #maybe use https://github.com/tpvasconcelos/ridgeplot#
-        n_colors=len(dff.columns)
-        color_values=plcolor.sample_colorscale(discrete_color_scale,[n/(n_colors -1) for n in range(n_colors)])
-        fig=ridgeplot(samples=dff.values.T,spacing=.3,labels=dff.columns,linewidth= 1.1,colorscale=discrete_color_scale)   
-        
-        # fig = go.Figure()
-        # for i, (data_line, color,colum) in enumerate(zip(dff.values, color_values,dff.columns)):
-        #     fig.add_trace(
-        #         go.Violin(x=data_line, line_color='black', name=colum, fillcolor=color)
-        #         )
-        # fig = fig.update_traces(orientation='h', side='positive', width=3, points=False, opacity=1)
-
-        if title:
-            fig.update_layout(title=title)
-        if ctx.triggered_id=='Ridge-save-plot':
-            save_plot(fig,name=f'{title}.html',save_path=save_path)
-        return fig   
-    else: raise PreventUpdate
+def update_Ridge_graph(data,rows,derived_virtual_selected_rows,spacing,title,save_path,save):
+    df=pd.DataFrame.from_records(data)
+    if derived_virtual_selected_rows is None:
+        derived_virtual_selected_rows=[]
+    dff=df if rows is None else pd.DataFrame(rows)
+    #maybe use https://github.com/tpvasconcelos/ridgeplot#
+    dff=dff.select_dtypes(include=np.number)
+    n_colors=len(dff.columns)
+    if not spacing:
+        spacing =1
+    color_values=plcolor.sample_colorscale(discrete_color_scale,[n/(n_colors -1) for n in range(n_colors)])
+    fig=RidgePlotFigureFactory_Custom(samples=dff.values.T,spacing=spacing,labels=dff.columns,linewidth= 1.1,colors=color_values).make_figure()
+    if title:
+        fig.update_layout(title=title)
+    if ctx.triggered_id=='Ridge-save-plot':
+        save_plot(fig,name=f'{title}.html',save_path=save_path)
+    return fig  
 
 @app.callback(
     Output('Corr-Graph','figure'),
@@ -511,13 +511,20 @@ def update_Corr_graph(scope,colum,data,rows,derived_virtual_selected_rows,corr_t
         cor=dff.corr(corr_type)
         if scope=='Over all':
             fig=px.imshow(abs(cor),text_auto=True,template=figure_template,color_continuous_scale=color_scale)
-        if colum:
-            fig=px.imshow(abs(cor[[colum]].transpose()),template=figure_template,color_continuous_scale=color_scale,text_auto=True)
-        if title:
-            fig.update_layout(title=title)
-        if ctx.triggered_id=='Corr-save-plot':
-            save_plot(fig,name=f'{title}.html',save_path=save_path)
-        return fig  
+            if title:
+                fig.update_layout(title=title)
+            if ctx.triggered_id=='Corr-save-plot':
+                save_plot(fig,name=f'{title}.html',save_path=save_path)
+            return fig  
+        else:
+            if colum:
+                fig=px.imshow(abs(cor[[colum]].transpose()),template=figure_template,color_continuous_scale=color_scale,text_auto=True)
+                if title:
+                    fig.update_layout(title=title)
+                if ctx.triggered_id=='Corr-save-plot':
+                    save_plot(fig,name=f'{title}.html',save_path=save_path)
+                return fig  
+            else: return {}
     else: raise PreventUpdate
     
 
@@ -559,5 +566,5 @@ def export_data(export,name,rows,derived_virtual_selected_rows,data,save_path):
 
 if __name__ == "__main__":
     app.run(debug=True)
-    #app.title="Christoph's Rapid VIZ"
+    #app.title="Christoph's Nsight"
     #serve(app.server, host="127.0.0.1", port=8050)
