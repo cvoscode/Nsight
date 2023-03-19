@@ -35,8 +35,8 @@ def style_app():
     """
     external_style=dbc.themes.SKETCHY
     figure_template="sketchy"
-    colors={'Sucess':'Green','Error':'Red','Info':'Yellow'}
-    color_scale=None#['rgb(0, 0, 0)','rgb(0, 255, 255)']
+    colors={'Sucess':'Green','Error':'Red','Info':'Grey'}
+    color_scale=['rgb(0, 0, 0)','rgb(0, 255, 255)','rgb(255,255,0)']
     discrete_color_scale='rainbow'
     min_style={'margin':'2px'}
     return external_style,colors,min_style,discrete_color_scale,color_scale,figure_template

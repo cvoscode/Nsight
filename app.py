@@ -11,11 +11,11 @@ import plotly.express as px
 import plotly.offline as offline
 import plotly.graph_objects as go
 import plotly.colors as plcolor
-
 import plotly.io as pio
 from ridgeplot import ridgeplot
 import plotly.figure_factory as ff
 import pandas as pd 
+import ppscore as pps
 from flask import Flask
 from waitress import serve
 import base64
@@ -66,68 +66,74 @@ def save_plot(fig,name,save_path):
 def create_Tab1(df):
     dff=df.describe(include='all')
     dff.insert(0,'statistical values',dff.index)
-    return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12)),
+    return dcc.Tab(label='Statistics',id='Col-tab',children=[dbc.Row(create_table(dff,'stats-table',False,pagesize=12),style=min_style),
                                                              dbc.Row(dcc.Input(id='stats-name',type='text',placeholder='Name of the export',debounce=True,style=min_style),style=min_style),
                                                              dbc.Row(html.Button('Export Statistics as csv',id='export-stats',style=min_style),style=min_style),
                                                              dbc.Row(html.Div(id='stat-export',style=min_style))])    
 def create_Tab2(df):
     columns=df.columns.to_list()
     return dcc.Tab(label='Histogram',id='Col-tab',children=[
-    dbc.Row(dcc.Loading(id='Col-Loading',children=[dcc.Graph(id='Col-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='Col-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([html.H5('Column'),dcc.Dropdown(options=columns,id='Col-x-dropdown',placeholder='Select Column for Histogram',style=min_style),]),
     dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='Col-color-dropdown',placeholder='Select Color Column',style=min_style),dcc.Dropdown(options=columns,id='Col-pattern-dropdown',placeholder='Select Pattern Column',style=min_style)]),
-    dbc.Row([dcc.Input(id='Col-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Histogram Plot',id='Col-save-plot',style=min_style)],style=min_style)
+    dbc.Row([dcc.Input(id='Col-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save Histogram Plot',id='Col-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='Col-popup',style=min_style)])
         	])
 def create_Tab3(df):
     num_columns=df.select_dtypes(include=np.number).columns.to_list()
     return dcc.Tab(label='Parallel Coordinates',id='PC-tab',children=[
-    dbc.Row(dcc.Loading(id='PC-Loading',children=[dcc.Graph(id='PC-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='PC-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([html.H5('Color'),dcc.Dropdown(options=num_columns,id='PC-color-dropdown',placeholder='Select Color Column',style=min_style),],style=min_style),
     dbc.Row([html.H5('Lower and Upper Bound'),cerate_Numeric('PC-Lower-Bound',placeholder='Lower Bound (without function)'),cerate_Numeric('PC-Upper-Bound',placeholder='Upper Bound (without function)')],style=min_style),
-    dbc.Row([dcc.Input(id='PC-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Parallel Coordinates Plot',id='PC-save-plot',style=min_style)],style=min_style)
+    dbc.Row([dcc.Input(id='PC-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save Parallel Coordinates Plot',id='PC-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='PC-popup',style=min_style)],style=min_style),
         	])
 def create_Tab4(df):
     num_columns=df.select_dtypes(include=np.number).columns.to_list()
     columns=df.columns
     return dcc.Tab(label='Scatterplot 2D',id='SC-tab',children=[
-    dbc.Row(dcc.Loading(id='SC-Loading',children=[dcc.Graph(id='SC-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='SC-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='SC-x-dropdown',placeholder='Select the x-Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC-y-dropdown',placeholder='Select the y-Column',style=min_style)],style=min_style),
     dbc.Row([html.H5('Color and Size'),dcc.Dropdown(options=columns,id='SC-color-dropdown',placeholder='Select Color Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC-size-dropdown',placeholder='Select Size Column (will not work if column values are negativ)',style=min_style)],style=min_style),
-    dbc.Row([dcc.Input(id='SC-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Scatter Plot',id='SC-save-plot',style=min_style)],style=min_style)
+    dbc.Row([dcc.Input(id='SC-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save Scatter Plot',id='SC-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='SC-popup',style=min_style)],style=min_style)
         	])
 def create_Tab5(df):
     num_columns=df.select_dtypes(include=np.number).columns.to_list()
     columns=df.columns
     return dcc.Tab(label='Scatterplot 3D',id='SC3D-tab',children=[
-    dbc.Row(dcc.Loading(id='SC3D-Loading',children=[dcc.Graph(id='SC3D-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='SC3D-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([html.H5('Columns'),dcc.Dropdown(options=num_columns,id='SC3D-x-dropdown',placeholder='Select the x-Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC3D-y-dropdown',placeholder='Select the y-Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC3D-z-dropdown',placeholder='Select the z-Column',style=min_style)],style=min_style),
     dbc.Row([html.H5('Color and Pattern'),dcc.Dropdown(options=columns,id='SC3D-color-dropdown',placeholder='Select Color Column',style=min_style),dcc.Dropdown(options=num_columns,id='SC3D-size-dropdown',placeholder='Select Size Column',style=min_style)],style=min_style),
-    dbc.Row([dcc.Input(id='SC3D-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save 3D Scatter Plot',id='SC3D-save-plot',style=min_style)],style=min_style)
+    dbc.Row([dcc.Input(id='SC3D-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save 3D Scatter Plot',id='SC3D-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='SC3D-popup',style=min_style)],style=min_style)
     ])
 
 
 def create_Tab6(df):
     columns=df.columns
     return dcc.Tab(label='Ridge',id='Ridge-tab',children=[
-    dbc.Row(dcc.Loading(id='Ridge-Loading',children=[dcc.Graph(id='Ridge-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='Ridge-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([dbc.Input(id='Ridge-space',type='number',placeholder='Space between the Columns (in times the highest distribution)',value=2,style=min_style)],style=min_style),
-    dbc.Row([dcc.Input(id='Ridge-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save 3D Scatter Plot',id='Ridge-save-plot',style=min_style)],style=min_style)
+    dbc.Row([dcc.Input(id='Ridge-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save 3D Scatter Plot',id='Ridge-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='Ridge-popup',style=min_style)],style=min_style)
     ])
 
 #Tab7=dcc.Tab(label='Pareto Analysis ABC Analyse',id='Pareto-tab',children=[html.H1('Test3')])
 
 def create_Tab8(df):
     return dcc.Tab(label='Correlations',id='Corr-tab',children=[
-    dbc.Row(dcc.Loading(id='Corr-Loading',children=[dcc.Graph(id='Corr-Graph',figure={})])),
+    dbc.Row(dcc.Loading(id='Corr-Loading',children=[])),
     dbc.Row([html.H4('Plot Settings'),html.Hr()]),
     dbc.Row([dcc.Dropdown(options=['Over all', 'Just with Target column'],id='Corr-scope',placeholder='Select Correltation Scope',style=min_style),dcc.Dropdown(id='Corr-columns',placeholder='Select Target Column',style=min_style)],style=min_style),
-    dbc.Row([html.H5('Correlation Type'),dcc.Dropdown(options=['pearson','spearman','kendall'],id='Corr-type-dropdown',placeholder='Select Correlation Type',style=min_style),]),
-    dbc.Row([dcc.Input(id='Corr-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style),html.Button('Save Correlations Plot',id='Corr-save-plot',style=min_style)],style=min_style)
+    dbc.Row([html.H5('Correlation Type'),dcc.Dropdown(options=['pearson','spearman','kendall','Power Predictive Score'],id='Corr-type-dropdown',placeholder='Select Correlation Type',style=min_style),],style=min_style),
+    dbc.Row([dcc.Input(id='Corr-name',type='text',placeholder='Input Plot Title (This is also the file name when saving)',debounce=True,style=min_style)],style=min_style),
+    dbc.Row([html.Button('Save Correlations Plot',id='Corr-save-plot',style=min_style),html.Button('Open Plot on fullscreen',id='Corr-popup',style=min_style)],style=min_style)
     ])
 def create_Export():
     return dcc.Tab(label='Export Data',id='Export-tab',children=[dbc.Row([dcc.Input(id='Export-name',type='text',placeholder='Name of the Data Export (including the extension - possible extensions are: .csv, .xlsx, .parquet)',debounce=True,style=min_style),html.Button('Export Data',id='Export Data',style=min_style),html.Div(id='Export-div')],style=min_style)])
@@ -195,8 +201,8 @@ def update_trans_layout(data):
             return  [dbc.Row(create_table(df,id='trans_table',renameable=True)),
                  dbc.Row([html.H4('Transform Columns'),html.Hr(),
                         dbc.Col([ dbc.Row([dcc.Dropdown(options=df.columns,id='trans-dropdown',placeholder='Select Column to transform',style=min_style)],style=min_style),dbc.Row([dbc.Col(html.Button('Label Encode Column',id='label-encode-button',style=min_style)),dbc.Col(html.Button('Scale Column Min/Max',id='scale-min/max-button',style=min_style)),dbc.Col(html.Button('Standardize Column',id='standardize-button',style=min_style))]),dbc.Row([dcc.Dropdown(options=['object','int64','float64','datetime64[ns]','bool'],id='dtypes-dropdown',placeholder='Select Column to transform',style=min_style),html.Button('Change Data Type of the selected column',id='change-dtype-button',style=min_style),html.Div(id='dtype-div')],style=min_style)]),
-                        dbc.Col([ dbc.Row([dbc.Input(id='varianz-value',type='Number',min=0.000001,max=0.9,step=0.000001,placeholder='Input a variance treshold for the variance filter',debounce=True,style=min_style),html.Button('Filter columns with a low variance (only on numeric columns)',id='filter-varianz-button')],style=min_style),
-                                    dbc.Row([html.Button('Scale all numerical columns Min/Max',id='all-minmax-button',style=min_style),html.Button('Standardize all numerical columns',id='all-standard-button',style=min_style),html.Button('Label Encode all categorical columns',id='all-label-button',style=min_style),html.Button('Drop Rows with missing values',id='dropna-button',style=min_style)],style={'margin':'8px 2px 8px'})]),
+                        dbc.Col([ dbc.Row([dbc.Input(id='varianz-value',type='Number',min=0.000001,max=0.9,step=0.000001,placeholder='Input a variance treshold for the variance filter',debounce=True,style=min_style),html.Button('Filter columns with a low variance (only on numeric columns)',id='filter-varianz-button',style=min_style),html.Button('Drop Rows with missing values',id='dropna-button',style=min_style)],style=min_style),
+                                    dbc.Row([html.Button('Scale all numerical columns Min/Max',id='all-minmax-button',style=min_style),html.Button('Standardize all numerical columns',id='all-standard-button',style=min_style),html.Button('Label Encode all categorical columns',id='all-label-button',style=min_style)],style={'margin':'8px 2px 8px'})]),
                         dbc.Row(html.Button('Confirm Transformation',id='confirm-trans-button',style=min_style),style=min_style)])]
                
 @app.callback(
@@ -329,7 +335,7 @@ def export_Stats(n_clicks,name,data,save_path):
 
 
 @app.callback(
-    Output('PC-Graph','figure'),
+    Output('PC-Loading','children'),
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
@@ -349,16 +355,30 @@ def update_PC_graph(data,rows,derived_virtual_selected_rows,color_column,up,low,
     dimensions = list([dict(range = [dff[col].min(),dff[col].max()],
          label = col, values = dff[col],multiselect = True,) for col in dff.select_dtypes(include=np.number).columns])
     layout=go.Layout(title={'text':title})
-    if color_column:
-        fig=go.Figure(data=go.Parcoords(dimensions=dimensions,labelangle=-45,labelside='bottom',line = dict(color = dff[color_column],colorscale = color_scale,showscale = True, colorbar = {'title': color_column}),unselected=dict(line={'opacity':0.1})),layout=layout)
+    if len(dimensions)<12:
+        labelangle=0
     else:
-        fig=go.Figure(data=go.Parcoords(dimensions=dimensions,labelangle=-45,labelside='bottom',unselected=dict(line={'opacity':0.1})),layout=layout)
+        labelangle=-45
+    if color_column:
+        fig=go.Figure(data=go.Parcoords(name=figure_temp,dimensions=dimensions,labelangle=labelangle,labelside='bottom',line = dict(color = dff[color_column],colorscale = color_scale,showscale = True, colorbar = {'title': color_column}),unselected=dict(line={'opacity':0.1})),layout=layout)
+    else:
+        fig=go.Figure(data=go.Parcoords(name=figure_temp,dimensions=dimensions,labelangle=labelangle,labelside='bottom',unselected=dict(line={'opacity':0.1})),layout=layout)
     if ctx.triggered_id=='PC-save-plot':
         save_plot(fig,name=f'{title}.html',save_path=save_path)
-    return fig
-
+    return [dbc.Modal(id='PC-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Parallel Coordinates')),
+                    dbc.ModalBody(dcc.Graph(id='PC-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='PC-Graph',figure=fig)]  
+ 
+@app.callback(Output('PC-Modal','is_open'),
+              Input('PC-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='PC-popup':
+        return True
+    
 @app.callback(
-    Output('Col-Graph','figure'),
+    Output('Col-Loading','children'),
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
@@ -383,13 +403,26 @@ def update_Col_graph(data,rows,derived_virtual_selected_rows,color_column,x,patt
             fig=px.histogram(dff,x=x,marginal='box',pattern_shape=pattern,template=figure_template)
         if title:
             fig.update_layout(title=title)
-        if ctx.triggered_id=='Col-save-plot':
+        if fig and ctx.triggered_id=='Col-save-plot':
             save_plot(fig,name=f'{title}.html',save_path=save_path)
-        return fig
-    else: return {}
+        return [dbc.Modal(id='Col-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Histogramm')),
+                    dbc.ModalBody(dcc.Graph(id='Col-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Col-Graph',figure=fig)]  
+    else: return [dbc.Modal(id='Col-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Histogramm')),
+                    dbc.ModalBody(dcc.Graph(id='Col-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Col-Graph',figure={}),html.H5(children=['The plot will be displayed here. To display the plot you must first choose any settings'],style={'color':f'{colors["Info"]}'})]
 
+@app.callback(Output('Col-Modal','is_open'),
+              Input('Col-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='Col-popup':
+        return True
+    
 @app.callback(
-    Output('SC-Graph','figure'),
+    Output('SC-Loading','children'),
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
@@ -420,14 +453,28 @@ def update_SC_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,siz
         else:
             fig=px.scatter(dff,x=x,y=y,trendline='ols',size=size,marginal_x='box',marginal_y='box',template=figure_template)
         if title:
-            fig.update_layout(title=title)
+            fig.update_layout(title=title,autosize=True)
         if ctx.triggered_id=='SC-save-plot':
             save_plot(fig,name=f'{title}.html',save_path=save_path)
-        return fig
-    else: raise PreventUpdate
+        return [dbc.Modal(id='SC-Modal',children=[
+                        dbc.ModalHeader(dbc.ModalTitle('2D Scatterplot')),
+                        dbc.ModalBody(dcc.Graph(id='SC-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                    ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='SC-Graph',figure=fig)]
+      
+    else: return [dbc.Modal(id='SC-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('2D Scatterplot')),
+                    dbc.ModalBody(dcc.Graph(id='SC-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='SC-Graph',figure={}),html.H5(children=['The plot will be displayed here. To display the plot you must first choose any settings'],style={'color':f'{colors["Info"]}'})]
+
+@app.callback(Output('SC-Modal','is_open'),
+              Input('SC-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='SC-popup':
+        return True
 
 @app.callback(
-    Output('SC3D-Graph','figure'),
+    Output('SC3D-Loading','children'),
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
@@ -441,7 +488,7 @@ def update_SC_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,siz
     Input('SC3D-save-plot','n_clicks'),prevent_initial_call=True,
 )
 def update_SC3D_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,z,size,title,save_path,save):
-    if x or y or z:
+    if x and y and z:
         df=pd.DataFrame.from_records(data)
         if derived_virtual_selected_rows is None:
             derived_virtual_selected_rows=[]
@@ -460,11 +507,25 @@ def update_SC3D_graph(data,rows,derived_virtual_selected_rows,color_column,x,y,z
             fig.update_layout(title=title)
         if ctx.triggered_id=='SC3D-save-plot':
             save_plot(fig,name=f'{title}.html',save_path=save_path)
-        return fig
-    else: raise PreventUpdate
-        
+        return [dbc.Modal(id='SC3D-Modal',children=[
+                        dbc.ModalHeader(dbc.ModalTitle('3D Scatterplot')),
+                        dbc.ModalBody(dcc.Graph(id='SC3D-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                    ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='SC3D-Graph',figure=fig)]
+    else: return [dbc.Modal(id='SC3D-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('3D Scatterplot')),
+                    dbc.ModalBody(dcc.Graph(id='SC3D-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='SC3D-Graph',figure={}),html.H5(children=['The plot will be displayed here. To display the plot you must first choose any settings'],style={'color':f'{colors["Info"]}'})]
+
+@app.callback(Output('SC3D-Modal','is_open'),
+              Input('SC3D-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='SC3D-popup':
+        return True
+
+
 @app.callback(
-    Output('Ridge-Graph','figure'),
+    Output('Ridge-Loading','children'),
     State('data_table','data'),
     Input('data_table','derived_virtual_data'),
     Input('data_table','derived_virtual_selected_rows'),
@@ -489,10 +550,20 @@ def update_Ridge_graph(data,rows,derived_virtual_selected_rows,spacing,title,sav
         fig.update_layout(title=title)
     if ctx.triggered_id=='Ridge-save-plot':
         save_plot(fig,name=f'{title}.html',save_path=save_path)
-    return fig  
+    return [dbc.Modal(id='Ridge-Modal',children=[
+                        dbc.ModalHeader(dbc.ModalTitle('Ridgeplot')),
+                        dbc.ModalBody(dcc.Graph(id='Ridge-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                    ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Ridge-Graph',figure=fig)]  
+
+@app.callback(Output('Ridge-Modal','is_open'),
+              Input('Ridge-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='Ridge-popup':
+        return True
 
 @app.callback(
-    Output('Corr-Graph','figure'),
+    Output('Corr-Loading','children'),
     Input('Corr-scope','value'),
     Input('Corr-columns','value'),
     State('data_table','data'),
@@ -509,25 +580,64 @@ def update_Corr_graph(scope,colum,data,rows,derived_virtual_selected_rows,corr_t
         derived_virtual_selected_rows=[]
     dff=df if rows is None else pd.DataFrame(rows) 
     if corr_type:
-        cor=dff.corr(corr_type)
-        if scope=='Over all':
-            fig=px.imshow(abs(cor),text_auto=True,template=figure_template,color_continuous_scale=color_scale)
-            if title:
-                fig.update_layout(title=title)
-            if ctx.triggered_id=='Corr-save-plot':
-                save_plot(fig,name=f'{title}.html',save_path=save_path)
-            return fig  
-        else:
-            if colum:
-                fig=px.imshow(abs(cor[[colum]].transpose()),template=figure_template,color_continuous_scale=color_scale,text_auto=True)
+        if corr_type=='Power Predictive Score':
+            if scope=='Over all':
+                matrix_df = pps.matrix(dff,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
+                matrix_df.columns=dff.columns
+                matrix_df.index=dff.columns
+                fig=px.imshow(matrix_df,text_auto=True,template=figure_template,color_continuous_scale=color_scale,labels={'x':'','y':''})
                 if title:
                     fig.update_layout(title=title)
                 if ctx.triggered_id=='Corr-save-plot':
                     save_plot(fig,name=f'{title}.html',save_path=save_path)
-                return fig  
-            else: return {}
-    else: raise PreventUpdate
-    
+            else:
+                if colum:
+                    matrix_df = pps.predictors(dff,colum,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
+                    matrix_df.columns=dff.drop(columns=[colum]).columns
+                    #matrix_df.index=dff.columns
+                    fig=px.imshow(matrix_df,text_auto=True,template=figure_template,color_continuous_scale=color_scale,labels={'x':'','y':''})
+                    if title:
+                        fig.update_layout(title=title)
+                    if ctx.triggered_id=='Corr-save-plot':
+                        save_plot(fig,name=f'{title}.html',save_path=save_path)
+                else: return  [dbc.Modal(id='Corr-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Feature dependencies')),
+                    dbc.ModalBody(dcc.Graph(id='Corr-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Corr-Graph',figure={}),html.H5(children=['Please provide a target column'],style={'color':f'{colors["Error"]}'})]
+        else:
+            cor=dff.corr(corr_type)
+            if scope=='Over all':
+                fig=px.imshow(abs(cor),text_auto=True,template=figure_template,color_continuous_scale=color_scale)
+                if title:
+                    fig.update_layout(title=title)
+                if ctx.triggered_id=='Corr-save-plot':
+                    save_plot(fig,name=f'{title}.html',save_path=save_path)
+            else:
+                if colum:
+                    fig=px.imshow(abs(cor[[colum]].transpose()),template=figure_template,color_continuous_scale=color_scale,text_auto=True)
+                    if title:
+                        fig.update_layout(title=title)
+                    if ctx.triggered_id=='Corr-save-plot':
+                        save_plot(fig,name=f'{title}.html',save_path=save_path)  
+                else: return  [dbc.Modal(id='Corr-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Feature dependencies')),
+                    dbc.ModalBody(dcc.Graph(id='Corr-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Corr-Graph',figure={}),html.H5(children=['Please provide a target column'],style={'color':f'{colors["Error"]}'})]
+        return [dbc.Modal(id='Corr-Modal',children=[
+                        dbc.ModalHeader(dbc.ModalTitle('Feature dependencies')),
+                        dbc.ModalBody(dcc.Graph(id='Corr-Graph',figure=fig,style={'height':'100%','width':'100%'})),
+                    ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Corr-Graph',figure=fig)]  
+    else: return [dbc.Modal(id='Corr-Modal',children=[
+                    dbc.ModalHeader(dbc.ModalTitle('Feature dependencies')),
+                    dbc.ModalBody(dcc.Graph(id='Corr-Graph',figure={})),
+                ], is_open=False,fullscreen=True,scrollable=True),dcc.Graph(id='Corr-Graph',figure={}),html.H5(children=['The plot will be displayed here. To display the plot you must first choose any settings'],style={'color':f'{colors["Info"]}'})]
+
+@app.callback(Output('Corr-Modal','is_open'),
+              Input('Corr-popup','n_clicks'),
+              prevent_initial_call=True,)
+def open_modal(popup):
+    if ctx.triggered_id=='Corr-popup':
+        return True    
 
 @app.callback(
         Output('Export-div','children'),
