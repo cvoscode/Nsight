@@ -676,6 +676,5 @@ def export_data(export,name,rows,derived_virtual_selected_rows,data,save_path):
             return html.H6(children=f'Please provide a file name with the targeted extension. (Supportet are: *.xlsx,*.parquet,*.csv)',style={'color':f'{colors["Error"]}'})
 
 if __name__ == "__main__":
-    app.run(debug=True)
-    #app.title="Christoph's Nsight"
-    #serve(app.server, host="127.0.0.1", port=8050)
+    app.title="Christoph's Nsight"
+    serve(app.server, host="127.0.0.1", port=8050)
