@@ -151,14 +151,14 @@ app.layout = dbc.Container([
                     dbc.Row([
                             dcc.Tabs(id='Table_Settings',children=[
                                     #TODO displaying data types
-                                    dcc.Tab(label='Load Data and gernal setting',children=[
+                                    dcc.Tab(label='Load Data and Gernal settings',children=[
                                             dbc.Row([dbc.Col([dbc.Row(dcc.Input(id='Path',type='text',placeholder='Path to data (supportes *.xlsx,*.parquet,*.csv)',debounce=True,style=min_style)),dbc.Row(dcc.Input(id='Save_Path',type='text',placeholder='Path to where the plots shall be saved',debounce=True,style=min_style)),dbc.Row(html.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style)),dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',style=min_style)),dbc.Row(html.Div(id='loading_info',style=min_style))]),
                                                     dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Christoph´s Nsight, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
                                                             dbc.Row(html.Img(src=app.get_asset_url('pexels-anna-nekrashevich-6802049.jpg'),style={'height':'80%','width':'80%','display':'block','margin-left':'auto','margin-right':'auto',})),]
                                                             ),]),]),
                                     # richtige App
                                     dcc.Tab(label='Data Transformation',id='Data-trans',children=[]),
-                                    dcc.Tab(label='Data_Exploration',id='Data-exp',children=[])
+                                    dcc.Tab(label='Data Exploration',id='Data-exp',children=[])
                                     
                             ])
                             ]),
