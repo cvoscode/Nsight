@@ -6,6 +6,6 @@ setup(
    description='A tool to get data Nsights',
    url='https://github.com/cvoscode/Nsight',
    author='cvoscode',
-   packages=['nsight'],  #same as name
-   install_requires=['dash', 'dash-bootstrap-components', 'pandas','ridgeplot','scikit-learn','waitress','statsmodels'], #external packages as dependencies
+   #packages=['nsight'],  #same as name
+   install_requires=['dash', 'dash-bootstrap-components', 'pandas','ridgeplot','scikit-learn','waitress','statsmodels','dash_bootstrap_templates'], #external packages as dependencies
 )
