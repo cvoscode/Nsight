@@ -8,7 +8,7 @@ pio.templates["watermark"] = go.layout.Template(
         dict(
             name="watermark",
             #Here you can input a text for a watermark
-            text="Christoph's Nsight",
+            text="Nsight",
             textangle=-30,
             opacity=0.1,
             font=dict(color="black", size=100),
@@ -35,7 +35,7 @@ def style_app():
     """
     external_style=dbc.themes.SKETCHY
     figure_template="sketchy"
-    colors={'Sucess':'Green','Error':'Red','Info':'Grey'}
+    colors={'Sucess':'Green','Error':'Red','Info':'Grey','Selected':'black','Selected_text':'white'}
     color_scale=['rgb(0, 0, 0)','rgb(0, 255, 255)','rgb(255,255,0)']
     discrete_color_scale='rainbow'
     min_style={'margin':'2px'}
