@@ -21,7 +21,7 @@ This makes it easy to dokument the exploration of your dataset.
 
 I hope you have a lot of fun using Nsight. If there are any issues or ideas, feel free to create a issue :D
 
-#Installation
+# Installation
 
 For the installation just copy the files to a folder and create a new virual enviroment with ``` python -m venv env ``` .
 Then you activate env and cd to the Nsight folder. In this folder just use the command ```pip install .``` . 
