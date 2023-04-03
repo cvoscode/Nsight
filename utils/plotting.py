@@ -1,92 +1,114 @@
-import plotly.express as px
-import plotly.offline as offline
-import plotly.graph_objects as go
-from typing import Tuple
+from __future__ import annotations
 
-
-
+from typing import Callable, Dict, Iterable, List, Optional
 
 import numpy as np
-import statsmodels.api as sm
+from plotly import graph_objects as go
 
+from ridgeplot._colors import (
+    apply_alpha,
+    get_color,
+    get_colorscale,
+    validate_colorscale,
+)
+from ridgeplot._types import ColorScaleType, NestedNumericSequence
+from ridgeplot._utils import get_xy_extrema, normalise_min_max
+from .styling import style_app
+from ridgeplot._kde import get_densities
 
-def evaluate_density(samples, points, kernel, bandwidth) -> Tuple[np.ndarray, np.ndarray]:
-    """Evaluate a density function at a set of points.
-    For a given set of samples, computes the kernel densities at the given
-    points. Both the original points and density arrays are returned.
-    """
-    # By default, we'll use a 'hard' KDE span. That is, we'll
-    # evaluate the densities and N equally spaced points
-    # over the range [min(samples), max(samples)]
-    if isinstance(points, int):
-        points = np.linspace(np.min(samples), np.max(samples), points)
+external_style,colors,min_style,discrete_color_scale,color_scale,figure_template=style_app()
 
-    # Unless a specific range is specified...
-    else:
-        points = np.asarray(points)
+class RidgePlotFigureFactory_Custom():
+    """Refer to :func:`~ridgeplot.ridgeplot()`."""
 
-    if points.ndim > 1:
-        raise ValueError(
-            f"The 'points' at which KDE is computed should be represented by a "
-            f"one-dimensional array, got an array of shape {points.shape} instead."
-        )
+    def __init__(
+        self,
+        colors,
+        samples=None,
+        densities: Optional[Iterable[NestedNumericSequence]] = None,
+        kernel: str = "gau",
+        bandwidth="normal_reference",
+        kde_points=500,
+        colormode: str = "mean-means",
+        coloralpha: Optional[float] = None,
+        labels=None,
+        linewidth: float = 1.4,
+        spacing: float = 0.5,
+        show_annotations: bool = True,
+        xpad: float = 0.05,
+    ) -> None:
+        # ==============================================================
+        # ---  Get clean and validated input arguments
+        # ==============================================================
+        has_samples = samples is not None
+        has_densities = densities is not None
+        if has_samples and has_densities:
+            raise ValueError("You may not specify both `samples` and `densities` arguments!")
+        elif not has_samples and not has_densities:
+            raise ValueError("You have to specify one of: `samples` or `densities`")
+        elif not has_densities:
+            densities = get_densities(samples, points=kde_points, kernel=kernel, bandwidth=bandwidth)
+        # Check whether all density arrays have shape (2, N)
+        new_densities: List[np.ndarray] = []
+        for array in densities:
+            array = np.asarray(array)
+            if array.ndim != 2 or array.shape[0] != 2:
+                raise ValueError(
+                    "Each density array must have shape (2, N), "
+                    f"but got array with shape {array.shape}"
+                )
+            new_densities.append(array)
 
-    # I decided to use statsmodels' KDEUnivariate for KDE. There are many
-    # other supported alternatives in the python scientific computing
-    # ecosystem. See, for instance, scipy's alternative - on which
-    # statsmodels relies - `from scipy.stats import gaussian_kde`
-    dens = sm.nonparametric.KDEUnivariate(samples)
+        n_traces = len(new_densities)
 
-    # I'm hard-coding the `fft=self.kernel == "gau"` for convenience here.
-    # This avoids the need to expose yet another __init__ argument (fft)
-    # to this class. The drawback is that, if and when statsmodels
-    # implements another kernel with fft, this will fall back to
-    # using the unoptimised version (with fft = False).
-    dens.fit(kernel=kernel, fft=kernel == "gau", bw=bandwidth)
-    densities = dens.evaluate(points)
-
-    # I haven't investigated the root of this issue yet
-    # but statsmodels' KDEUnivariate implementation
-    # can return a nan float if something goes
-    # wrong internally. As to avoid confusion
-    # further down the pipeline, I decided
-    # to check whether the correct object
-    # (and shape) are being returned.
-    if not isinstance(densities, np.ndarray) or densities.shape != points.shape:
-        raise RuntimeError(
-            f"Could now evaluate densities using the {kernel!r} kernel! "
-            f"Try using kernel='gau' (default)."
-        )
-
-    return points, densities
-
-
-def get_densities(samples, points, kernel, bandwidth) -> np.ndarray:
-    return np.asarray(
-        [
-            evaluate_density(
-                samples=s,
-                points=points,
-                kernel=kernel,
-                bandwidth=bandwidth,
+        if colormode not in self.colormode_maps.keys():
+            raise ValueError(
+                f"The colormode argument should be one of "
+                f"{tuple(self.colormode_maps.keys())}, got {colormode} instead."
             )
-            for s in samples
-        ]
-    )
 
+        if coloralpha is not None:
+            coloralpha = float(coloralpha)
 
+        if labels is not None:
+            n_labels = len(labels)
+            if n_labels != n_traces:
+                raise ValueError(f"Expected {n_traces} labels, got {n_labels}.")
+            labels = list(map(str, labels))
+        else:
+            labels = [f"Trace {i + 1}" for i in range(n_traces)]
 
+        self.densities: List[np.ndarray] = new_densities
+        self.coloralpha: Optional[float] = coloralpha
+        self.colormode = str(colormode)
+        self.labels: list = labels
+        self.linewidth: float = float(linewidth)
+        self.spacing: float = float(spacing)
+        self.show_annotations: bool = bool(show_annotations)
+        self.xpad: float = float(xpad)
 
+        # ==============================================================
+        # ---  Other instance variables
+        # ==============================================================
+        self.n_traces: int = n_traces
+        self.x_min, self.x_max, _, self.y_max = get_xy_extrema(arrays=self.densities)
+        self.fig: go.Figure = go.Figure()
+        self.colors=colors
 
+    @property
+    def colormode_maps(self) -> Dict[str, Callable[[], List[float]]]:
+        return {
+            "index": self._compute_midpoints_index,
+            "mean-minmax": self._compute_midpoints_mean_minmax,
+            "mean-means": self._compute_midpoints_mean_means,
+        }
 
-
-
-def draw_base(fig,x, y_shifted) -> None:
+    def draw_base(self, x, y_shifted) -> None:
         """Draw the base for a density trace.
         Adds an invisible trace at constant y that will serve as the fill-limit
         for the corresponding density trace.
         """
-        fig.add_trace(
+        self.fig.add_trace(
             go.Scatter(
                 x=x,
                 y=[y_shifted] * len(x),
@@ -97,14 +119,14 @@ def draw_base(fig,x, y_shifted) -> None:
             )
         )
 
-def draw_density_trace(fig, x, y, label, color,linewidth) -> None:
+    def draw_density_trace(self, x, y, label, color) -> None:
         """Draw a density trace.
         Adds a density 'trace' to the Figure. The ``fill="tonexty"`` option
         fills the trace until the previously drawn trace (see
         :meth:`draw_base`). This is why the base trace must be drawn first.
         """
         line_color = "rgba(0,0,0,0.6)" if color is not None else None
-        fig.add_trace(
+        self.fig.add_trace(
             go.Scatter(
                 x=x,
                 y=y,
@@ -112,10 +134,11 @@ def draw_density_trace(fig, x, y, label, color,linewidth) -> None:
                 name=label,
                 fill="tonexty",
                 mode="lines",
-                line=dict(color=line_color, width=linewidth),
+                line=dict(color=line_color, width=self.linewidth),
             ),
         )
-def update_layout(self, y_ticks: list) -> None:
+
+    def update_layout(self, y_ticks: list) -> None:
         """Update figure's layout."""
         self.fig.update_layout(
             hovermode=False,
@@ -138,14 +161,35 @@ def update_layout(self, y_ticks: list) -> None:
             **axes_common,
         )
 
-def make_figure(labels,colors,samples, points, kernel, bandwidth) -> go.Figure:
+    def _compute_midpoints_index(self) -> List[float]:
+        return [i / (self.n_traces - 1) for i in reversed(range(self.n_traces))]
+
+    def _compute_midpoints_mean_minmax(self) -> List[float]:
+        means = [np.sum(x * y) / np.sum(y) for x, y in self.densities]
+        return [normalise_min_max(mean, min_=self.x_min, max_=self.x_max) for mean in means]
+
+    def _compute_midpoints_mean_means(self) -> List[float]:
+        means = [np.sum(x * y) / np.sum(y) for x, y in self.densities]
+        return [normalise_min_max(mean, min_=min(means), max_=max(means)) for mean in means]
+
+    # def pre_compute_colors(self) -> List[str]:
+    #     midpoints = self.colormode_maps[self.colormode]()
+    #     colors = []
+    #     for midpoint in midpoints:
+    #         color = get_color(self.colorscale, midpoint=midpoint)
+    #         if self.coloralpha is not None:
+    #             color = apply_alpha(color, alpha=self.coloralpha)
+    #         colors.append(color)
+    #     return colors
+
+    def make_figure(self) -> go.Figure:
         y_ticks = []
-        densities=get_densities()
-        for i, ((x, y), label, color) in enumerate(zip(densities, labels, colors)):
+        for i, ((x, y), label, color) in enumerate(zip(self.densities, self.labels, self.colors)):
             # y_shifted is the y-origin for the new trace
             y_shifted = -i * (self.y_max * self.spacing)
-            draw_base(x=x, y_shifted=y_shifted)
-            draw_density_trace(x=x, y=y + y_shifted, label=label, color=color)
+            self.draw_base(x=x, y_shifted=y_shifted)
+            self.draw_density_trace(x=x, y=y + y_shifted, label=label, color=color)
             y_ticks.append(y_shifted)
-        fig.update_layout(y_ticks=y_ticks)
-        return fig
+        self.update_layout(y_ticks=y_ticks)
+        return self.fig
+    
