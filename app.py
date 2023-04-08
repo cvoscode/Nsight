@@ -164,7 +164,11 @@ app.layout = dbc.Container([
                             dcc.Tabs(id='Table_Settings',children=[
                                     #TODO displaying data types
                                     dcc.Tab(label='Load Data and Gernal settings',children=[
-                                            dbc.Row([dbc.Col([dbc.Row(dbc.Input(id='Path',type='text',placeholder='Path to data (supportes *.xlsx,*.parquet,*.csv)',debounce=True,style=min_style),style=min_style),dbc.Row(dbc.Input(id='Save_Path',type='text',placeholder='Path to where the plots shall be saved',debounce=True,style=min_style),style=min_style),dbc.Row(dbc.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style),style=min_style),dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',style=min_style),style=min_style),dbc.Row(html.Div(id='loading_info',style=min_style),style=min_style)]),
+                                            dbc.Row([dbc.Col([dbc.Row(dbc.Input(id='Path',type='text',placeholder='Path to data (supportes *.xlsx,*.parquet,*.csv)',debounce=True,style=min_style),style=min_style),
+                                                              dbc.Row([dbc.Col(dcc.Dropdown(id='seperator-dropdown',options=[';',','],placeholder='Seperator (Optional)')),dbc.Col(dcc.Dropdown(id='decimal-dropdown',options=[',','.'],placeholder='Decimal (Optional)'))]),
+                                                              dbc.Row(dbc.Input(id='Save_Path',type='text',placeholder='Path to where the plots shall be saved',debounce=True,style=min_style),style=min_style),
+                                                              dbc.Row(dbc.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style),style=min_style),
+                                                              dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',style=min_style),style=min_style),dbc.Row(html.Div(id='loading_info',style=min_style),style=min_style)]),
                                                     dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Nsight, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
                                                             dbc.Row(html.Img(src=app.get_asset_url('pexels-anna-nekrashevich-6802049.jpg'),style={'height':'80%','width':'80%','display':'block','margin-left':'auto','margin-right':'auto',})),]
                                                             ),]),]),
@@ -181,8 +185,13 @@ app.layout = dbc.Container([
     Output('loading_info','children')],
     State('Path','value'),
     Input('Load-Data-button','n_clicks'), 
-    State('change_dtypes','value'),prevent_initial_call=True)
-def load_data(Path,n_clicks,change_dtypes):
+    State('change_dtypes','value'),
+    State('seperator-dropdown','value'),
+    State('decimal-dropdown','value'),
+    
+    
+    prevent_initial_call=True)
+def load_data(Path,n_clicks,change_dtypes,seperator,decimal):
     if Path is None:
         return[{},'Welcome to my Nsight! To start provide a Link to your Data']
     if n_clicks and ctx.triggered_id=='Load-Data-button':
@@ -190,7 +199,7 @@ def load_data(Path,n_clicks,change_dtypes):
             try:
                 #df=px_data()
                 Path=Path.strip('\"')
-                df=read_data(os.path.normpath(Path))
+                df=read_data(os.path.normpath(Path),seperator,decimal)
             except:
                 return [{},html.H6(children='The data was not loaded sucessfully! It seems the format you provided is not supported, the data is corrupt, or the path is not valid!',style={'color':f'{colors["Error"]}'})]    
             #check box
@@ -801,7 +810,6 @@ def update_Corr_graph(scope,colum,data,rows,derived_virtual_selected_rows,corr_t
                 matrix_df = pps.matrix(dff,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
                 matrix_df.columns=dff.columns
                 matrix_df.index=dff.columns
-                cor=matrix_df
                 fig=px.imshow(matrix_df,text_auto=True,template=figure_template,color_continuous_scale=color_scale,labels={'x':'','y':''})
                 if not title:
                     scope_=f'_scope' if scope else ''
@@ -813,8 +821,6 @@ def update_Corr_graph(scope,colum,data,rows,derived_virtual_selected_rows,corr_t
                 if colum:
                     matrix_df = pps.predictors(dff,colum,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
                     matrix_df.columns=dff.drop(columns=[colum]).columns
-                    cor=matrix_df
-                    #matrix_df.index=dff.columns
                     fig=px.imshow(matrix_df,text_auto=True,template=figure_template,color_continuous_scale=color_scale,labels={'x':'','y':''})
                     if not title:
                         scope_=f'_scope' if scope else ''
@@ -863,23 +869,61 @@ def open_modal(popup):
     if ctx.triggered_id=='Corr-popup':
         return True    
 
-# @app.callback(Output('Corr-export-div','children'),
-#               Input('Corr-export-button','n_clicks'),
-#               State('Corr-export','value'),
-#               State('Corr-type-dropdown','value'),
-#               State('Corr-scope','value'),
-#               State('Corr-columns','value'),)
-# def export_corr(button,name,corr_type,scope,columns):
-    
+@app.callback(Output('Corr-export-div','children'),
+              
+              Input('Corr-export-button','n_clicks'),
+              State('Corr-export','value'),
+              State('Corr-type-dropdown','value'),
+              State('Corr-scope','value'),
+              State('Corr-columns','value'),
+              State('data_table','data'),
+              State('data_table','derived_virtual_data'),
+              State('data_table','derived_virtual_selected_rows'),
+              State('Save_Path','value'),prevent_initial_call=True,
+)
+def export_corr(button,name,corr_type,scope,colum,data,rows,derived_virtual_selected_rows,save_path):
+    df=pd.DataFrame.from_records(data)
+    if derived_virtual_selected_rows is None:
+        derived_virtual_selected_rows=[]
+    dff=df if rows is None else pd.DataFrame(rows) 
+    if ctx.triggered_id=='Corr-export-button':
+        if corr_type=='Power Predictive Score':
+            if scope=='Over all':
+                matrix_df = pps.matrix(dff,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
+                matrix_df.columns=dff.columns
+                matrix_df.index=dff.columns
+                cor=matrix_df
+            else:
+                if colum:
+                    matrix_df = pps.predictors(dff,colum,random_seed=42,)[['x', 'y', 'ppscore']].pivot(columns='x', index='y', values='ppscore')
+                    matrix_df.columns=dff.drop(columns=[colum]).columns
+                    cor=matrix_df
+            if not name:
+                name=f'{corr_type}_{scope}'
+            if save_path:
+                    path=os.path.join(save_path,name)
+            else:
+                path=name
+            cor.to_csv(f'{path}.csv')
+            return html.H6(children=f'Correlations were saved to {path}.csv',style={'color':f'{colors["Sucess"]}'})
+        else:
+            if corr_type:
+                cor=dff.corr(corr_type)
+                if scope=='Over all':
+                    cor=abs(cor)
+                else:
+                    cor=abs(cor[[colum]].transpose())
+                if not name:
+                    name=f'{corr_type}_{scope}'
+                if save_path:
+                        path=os.path.join(save_path,name)
+                else: path=name
+                cor.to_csv(f'{path}.csv')
+                return html.H6(children=f'Correlations were saved to {path}.csv',style={'color':f'{colors["Sucess"]}'})
+    else:
+        return html.H6(children=f'Please provide a file name with the targeted extension. (Supportet are: *.xlsx,*.parquet,*.csv)',style={'color':f'{colors["Error"]}'})
 
-
-  
-
-
-
-
-
-
+            
 @app.callback(
         Output('Export-div','children'),
     Input('Export Data','n_clicks'),
@@ -919,6 +963,5 @@ def export_data(export,name,rows,derived_virtual_selected_rows,data,save_path):
 if __name__ == "__main__":
     app.title="Nsight"
     print('running')
-    app.run(debug=True)
     serve(app.server, host="127.0.0.1", port=8050,threads=12)
     
