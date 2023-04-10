@@ -170,7 +170,7 @@ app.layout = dbc.Container([
                                                               dbc.Row(dbc.Button('Load Data',id='Load-Data-button',n_clicks=0,style=min_style),style=min_style),
                                                               dbc.Row(dcc.Checklist(['Automatically convert datatypes'],['Automatically convert datatypes'],id='change_dtypes',style=min_style),style=min_style),dbc.Row(html.Div(id='loading_info',style=min_style),style=min_style)]),
                                                     dbc.Col([dbc.Row(children=[dcc.Markdown('Welcome to Nsight, a web based tool to visualize your Data! \n\n To start please insert the path of data you want to visualize and click the Button Load Data! \n\n PS: If you want to clear a dropdown, just use Backspace or Del',style={'text-align':'center'})]),
-                                                            dbc.Row(html.Img(src=app.get_asset_url('pexels-anna-nekrashevich-6802049.jpg'),style={'height':'80%','width':'80%','display':'block','margin-left':'auto','margin-right':'auto',})),]
+                                                            dbc.Row(html.Img(src=app.get_asset_url('DallE_pic.png'),style={'height':'80%','width':'100%','display':'block','margin-left':'auto','margin-right':'auto',})),]
                                                             ),]),]),
                                     # richtige App
                                     dcc.Tab(label='Data Transformation',id='Data-trans',children=[]),
