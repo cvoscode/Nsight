@@ -8,4 +8,4 @@ setup(
    author='cvoscode',
    packages=['nsight'],  #same as name
    install_requires=['dash', 'dash-bootstrap-components', 'pandas','ridgeplot','scikit-learn','waitress','statsmodels','ppscore','pyarrow'], #external packages as dependencies
-)
+   
