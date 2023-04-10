@@ -19,7 +19,7 @@ You can create several plots and tables of your data:
 Each plot and table can be exported and saved under a path and name your can specify.
 This makes it easy to document the exploration of your dataset.
 
-In the example_data folder you find some example data and example plot. Each plot is saved as an interactive html from which you can export a png.
+In the example_data folder you find some example data and example plots. Each plot is saved as an interactive html from which you can export a png.
 
 
 I hope you have a lot of fun using Nsight. If there are any issues or ideas, feel free to create a issue :D
